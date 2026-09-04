@@ -1,5 +1,6 @@
 ---
 id: "persist_docs"
+description: "Persist_docs - Read this in-depth guide to learn about configurations in dbt."
 datatype: Dict[Str, Bool]
 ---
 
@@ -20,7 +21,7 @@ datatype: Dict[Str, Bool]
 
 ```yml
 models:
-  [<resource-path>](resource-path):
+  [<resource-path>](/reference/resource-configs/resource-path):
     +persist_docs:
       relation: true
       columns: true
@@ -57,7 +58,7 @@ This config is not implemented for sources.
 
 ```yml
 seeds:
-  [<resource-path>](resource-path):
+  [<resource-path>](/reference/resource-configs/resource-path):
     +persist_docs:
       relation: true
       columns: true
@@ -74,7 +75,7 @@ seeds:
 
 ```yml
 snapshots:
-  [<resource-path>](resource-path):
+  [<resource-path>](/reference/resource-configs/resource-path):
     +persist_docs:
       relation: true
       columns: true
@@ -82,6 +83,22 @@ snapshots:
 ```
 
 </File>
+
+<VersionBlock firstVersion="1.9">
+<File name='snapshots/snapshot_name.yml'>
+
+```yaml
+
+snapshots:
+  - name: snapshot_name
+    [config](/reference/resource-properties/config):
+      persist_docs:
+        relation: true
+        columns: true
+```
+
+</File>
+</VersionBlock>
 
 <File name='snapshots/<filename>.sql'>
 
@@ -106,36 +123,98 @@ select ...
 
 ## Definition
 
-Optionally persist [resource descriptions](resource-properties/description) as
+Optionally persist [resource descriptions](/reference/resource-properties/description) as
 column and relation comments in the database. By default, documentation
 persistence is disabled, but it can be enabled for specific resources or groups of
 resources as needed.
 
-<Changelog>
-
- - Support for this config on Redshift, Postgres, and Snowflake is new in 0.17.0
- - Support for column-level docs persistence is new for all databases in 0.17.0
-
-</Changelog>
-
 ## Support
 
-The `persist_docs` config is supported on all core dbt plugins: BigQuery,
-Redshift, Snowflake, and Postgres. Some databases impose limitations on the
-types of descriptions that can be added to database objects. At present, the
-`persist_docs` flag has the following known limitations:
- - Column-level comments are not supported on Snowflake views
+The `persist_docs` config is supported on the most widely used dbt adapters:
+- Postgres
+- Redshift
+- Snowflake
+- BigQuery
+- Databricks 
+- Apache Spark
+- Starburst Galaxy (`dbt-trino`)
+
+However, some databases limit where and how descriptions can be added to database objects. Those database adapters might not support `persist_docs`, or might offer only partial support.
+
+Some known issues and limitations:
+
+<WHCode>
+
+<div warehouse="Databricks">
+
+- Column-level comments require `file_format: delta` (or another "v2 file format").
+
+
+</div>
+
+<div warehouse="Snowflake">
+
+- If a column name in a SQL model is in a mixed-case format (for example, `ca_net_ht_N`), the docs for that column will not be persisted. For the docs to persist, there are two options: 
+
+    - Define the column name in the corresponding YML file using lowercase or uppercase letters only.
+    - Use the [`quote`](../resource-properties/columns.md#quoter) configuration in the corresponding YML file.
+
+  See the following sample steps on how to use the `quote` field for columns in a mixed-case format.
+
+    1. Create the following SQL and YML files:
+
+        <File name='<modelname>.sql'>
+
+            ```sql
+            {{ config(materialized='table') }}
+
+            select 1 as "ca_net_ht_N" # note the use of double quotes for the column name
+            ```
+        </File>
+
+        <File name='<modelname>.yml'>
+
+            ```yml
+            models:
+              - name: <modelname>
+                description: This is the table description
+
+            columns:
+              - name: "ca_net_ht_N"
+                description: This should be the description of the column
+                quote: true
+            ```
+        </File>
+
+    2. Run `dbt build -s models/<modelname>.sql --full-refresh`. 
+
+    3. Open the logs at `logs/dbt.log` and check the column description:
+
+        ```log
+        alter table analytics.<schema>.<modelname> alter
+            "ca_net_ht_N" COMMENT $$This should be the description of the column$$;
+        ```
+
+</div>
+
+<div warehouse="Starburst Galaxy (dbt-trino)">
+
+- Requires configuring an [API Auth token](https://docs.starburst.io/starburst-galaxy/developer-tools/api/api-auth-token.html) and setting `starburst_url`, `starburst_client_id`, and `starburst_secret_key` in the [connection profile](/docs/local/connect-data-platform/trino-setup#additional-parameters).
+
+
+</div>
+
+</WHCode>
 
 ## Usage
 
 ### Documenting columns and relations
 
-Supply a [description](resource-properties/description) for a model:
+Supply a [description](/reference/resource-properties/description) for a model:
 
 <File name='models/schema.yml'>
 
 ```yml
-version: 2
 
 models:
   - name: dim_customers

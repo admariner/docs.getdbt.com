@@ -1,13 +1,22 @@
 ---
 resource_types: [snapshots]
+description: "Target_database - Read this in-depth guide to learn about configurations in dbt."
 datatype: string
 ---
+
+:::note
+
+Starting in <Constant name="core" /> v1.9+, this functionality is no longer utilized. Use the [database](/reference/resource-configs/database) config as an alternative to define a custom database while still respecting the `generate_database_name` macro. 
+
+Try it now in the [<Constant name="dbt" /> **Latest** release track](/docs/dbt-versions/dbt-release-tracks).
+
+:::
 
 <File name='dbt_project.yml'>
 
 ```yml
 snapshots:
-  [<resource-path>](resource-path):
+  [<resource-path>](/reference/resource-configs/resource-path):
     +target_database: string
 
 ```
@@ -26,7 +35,7 @@ snapshots:
 </File>
 
 ## Description
-The database that dbt should build a [snapshot](snapshots) table into.
+The database that dbt should build a [snapshot](/docs/build/snapshots) <Term id="table" /> into.
 
 Notes:
 - The specified database must already exist
@@ -40,7 +49,7 @@ Runtime Error
 
 
 ## Default
-By default, dbt will use the [target](target) database associated with your profile/connection.
+By default, dbt will use the [target](/reference/dbt-jinja-functions/target) database associated with your profile/connection.
 
 ## Examples
 ### Build all snapshots in a database named `snapshots`
@@ -56,7 +65,7 @@ snapshots:
 </File>
 
 ### Use a target-aware database
-Use the [`{{ target }}` variable](target) to change which database a snapshot table is built in.
+Use the [`{{ target }}` variable](/reference/dbt-jinja-functions/target) to change which database a snapshot table is built in.
 
 Note: consider whether this use-case is right for you, as downstream `refs` will select from the `dev` version of a snapshot, which can make it hard to validate models that depend on snapshots.
 
@@ -72,10 +81,10 @@ snapshots:
 
 ### Use the same database-naming behavior as models
 
-Leverage the [`generate_database_name` macro](using-custom-database) to build snapshots in databases that follow the same naming behavior as your models.
+Leverage the [`generate_database_name` macro](/docs/build/custom-databases) to build snapshots in databases that follow the same naming behavior as your models.
 
 Notes:
-* This macro is not available when configuring from the `dbt_project.yml` file, so must be configured in a snapshot config block.
+* This macro is not available when configuring from the `dbt_project.yml` file, so it must be configured in a snapshot SQL file config.
 * Consider whether this use-case is right for you, as downstream `refs` will select from the `dev` version of a snapshot, which can make it hard to validate models that depend on snapshots.
 
 <File name='snapshots/orders_snaphot.sql'>

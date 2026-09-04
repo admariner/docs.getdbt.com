@@ -1,35 +1,44 @@
 ---
-title: "test"
+title: "About dbt test command"
+sidebar_label: "test"
 id: "test"
 ---
 
-`dbt test` runs tests on data in deployed models. There are two types of tests:
+`dbt test` runs data tests defined on models, sources, snapshots, and seeds and unit tests defined on SQL models. It expects that you have already created those resources through the appropriate commands.
 
-- schema validations, declared in a `schema.yml` file.
-- custom data tests, written as SQL `SELECT` statements.
-
-`dbt test` runs both types of test and reports the results to the console.
-
-The tests to run can be selected using the `--models` flag discussed [here](model-selection-syntax).
+The tests to run can be selected using the `--select` flag discussed [here](/reference/node-selection/syntax).
 
 ```bash
+# run data and unit tests
+dbt test
+
+# run only data tests
+dbt test --select test_type:data
+
+# run only unit tests
+dbt test --select test_type:unit
+
 # run tests for one_specific_model
-dbt test --models one_specific_model
+dbt test --select "one_specific_model"
 
 # run tests for all models in package
-dbt test --models some_package.*
+dbt test --select "some_package.*"
 
-# run only custom data tests
-dbt test --data
+# run only data tests defined singularly
+dbt test --select "test_type:singular"
 
-# run only schema tests
-dbt test --schema
+# run only data tests defined generically
+dbt test --select "test_type:generic"
 
-# run custom data tests for one_specific_model
-dbt test --data --models one_specific_model
+# run data tests limited to one_specific_model
+dbt test --select "one_specific_model,test_type:data"
 
-# run schema tests for one_specific_model
-dbt test --schema --models one_specific_model
+# run unit tests limited to one_specific_model
+dbt test --select "one_specific_model,test_type:unit"
 ```
 
-For more information on writing tests, see the [Testing Documentation](building-a-dbt-project/tests).
+For more information on writing tests, read the [data testing](/docs/build/data-tests) and [unit testing](/docs/build/unit-tests) documentation.
+
+
+
+

@@ -1,35 +1,56 @@
-<File name='snapshots/<filename>.sql'>
+---
+description: "Snapshot-name - Read this in-depth guide to learn about configurations in dbt."
+---
 
-```jinja2
-{% snapshot snapshot_name %}
+<VersionBlock firstVersion="1.9">
+<File name='snapshots/<filename>.yml'>
 
-{% endsnapshot %}
+```yaml
+snapshots:
+  - name: snapshot_name
+    relation: source('my_source', 'my_table')
+    config:
+      schema: string
+      database: string
+      unique_key: column_name_or_expression
+      strategy: timestamp | check
+      updated_at: column_name  # Required if strategy is 'timestamp'
 
 ```
 
 </File>
+</VersionBlock>
+
 
 ## Description
 
-The name of a snapshot, as defined in the `{% snapshot %}` block header. This name is used when selecting from a snapshot using the [`ref` function](ref)
+The name of a snapshot, which is used when selecting from a snapshot using the [`ref` function](/reference/dbt-jinja-functions/ref)
 
-This name must not conflict with any other snapshot names, or any model names.
+This name must not conflict with the name of any other "refable" resource (models, seeds, other snapshots) defined in this project or package.
 
 The name does not need to match the file name. As a result, snapshot filenames do not need to be unique.
 
 ## Examples
 ### Name a snapshot `order_snapshot`
 
-<File name='snapshots/orders.sql'>
+<VersionBlock firstVersion="1.9">
+<File name='snapshots/order_snapshot.yml'>
 
-```jinja2
-{% snapshot orders_snapshot %}
-...
-{% endsnapshot %}
 
+```yaml
+snapshots:
+  - name: order_snapshot
+    relation: source('my_source', 'my_table')
+    config:
+      schema: string
+      database: string
+      unique_key: column_name_or_expression
+      strategy: timestamp | check
+      updated_at: column_name  # Required if strategy is 'timestamp'
 ```
-
 </File>
+
+</VersionBlock>
 
 
 To select from this snapshot in a downstream model:

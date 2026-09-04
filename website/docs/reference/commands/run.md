@@ -1,30 +1,29 @@
 ---
-title: "run"
+title: "About dbt run command"
+sidebar_label: "run"
+description: "The dbt run command executes your compiled SQL models against a target database."
 id: "run"
 ---
 
 ## Overview
 
-`dbt run` executes compiled sql model files against the current `target`
-database. dbt connects to the target database and runs the relevant SQL required
-to materialize all data models using the specified materialization strategies.
-Models are run in the order defined by the dependency graph generated during
-compilation. Intelligent multi-threading is used to minimize execution time
-without violating dependencies.
+The `dbt run` command only applies to models. It doesn't run tests, snapshots, seeds, or other resource types. To run those commands, use the appropriate dbt commands found in the [dbt commands](/reference/dbt-commands) section — such as `dbt test`, `dbt snapshot`, or `dbt seed`. Alternatively, use `dbt build` with a [resource type selector](/reference/node-selection/methods#resource_type).
 
-Deploying new models frequently involves destroying prior versions of these
-models. In these cases, `dbt run` minimizes the amount of time in which a model
-is unavailable by first building each model with a temporary name, then dropping
-the existing model, then renaming the model to its correct name. The drop and
-rename happen within a single database transaction for database adapters that
-support transactions.
+You can use the `dbt run` command when you want to build or rebuild models in your project.
+
+### How does `dbt run` work?
+
+- `dbt run` executes compiled SQL model files against the current `target` database. 
+- dbt connects to the target database and runs the relevant SQL required to materialize all data models using the specified <Term id="materialization" /> strategies.
+- Models are run in the order defined by the dependency graph generated during compilation. Intelligent multi-threading is used to minimize execution time without violating dependencies.
+- Deploying new models frequently involves destroying prior versions of these models. In these cases, `dbt run` minimizes downtime by first building each model with a temporary name, then dropping and renaming within a single transaction (for adapters that support transactions).
 
 ## Refresh incremental models
 
-If you provide the `--full-refresh` argument to `dbt run`, dbt will treat incremental models as table models. This is useful when
+If you provide the `--full-refresh` flag to `dbt run`, dbt will treat incremental models as <Term id="table" /> models. This is useful when
 
-1. The schema of an incremental model changes and you need to recreate it
-2. You want to reprocess the entirety of the incremental model because of new logic in the model code
+1. The schema of an incremental model changes and you need to recreate it.
+2. You want to reprocess the entirety of the incremental model because of new logic in the model code.
 
 <File name='bash'>
 
@@ -34,7 +33,9 @@ dbt run --full-refresh
 
 </File>
 
-In the dbt compilation context, this flag will be available as [flags.FULL_REFRESH](flags). Further, the `is_incremental()` macro will return `false` for *all* models in response when the `--full-refresh` flag is specified.
+You can also supply the flag by its short name: `dbt run -f`.
+
+In the dbt compilation context, this flag will be available as [flags.FULL_REFRESH](/reference/dbt-jinja-functions/flags). Further, the `is_incremental()` macro will return `false` for *all* models in response when the `--full-refresh` flag is specified.
 
 <File name='models/example.sql'>
 
@@ -53,52 +54,39 @@ select * from all_events
 
 </File>
 
-## Treat warnings as errors
-
-In some cases, dbt will emit warnings rather than errors. These warnings are intended to alert you to potential issues with your dbt project, like the use of deprecated methods or configurations. To treat these warnings as errors (eg. in a CI environment) provide the `--warn-error` flag to your invocation of dbt.
-
-```
-$ dbt --warn-error run
-```
-
 ## Running specific models
 
 dbt will also allow you select which specific models you'd like to materialize. This can be useful during special scenarios where you may prefer running a different set of models at various intervals. This can also be helpful when you may want to limit the tables materialized while you develop and test new models.
 
-For more information, see the [Model Selection Syntax Documentation](model-selection-syntax).
+For more information, see the [Model Selection Syntax Documentation](/reference/node-selection/syntax).
+
+For more information on running parents or children of specific models, see the [Graph Operators Documentation](/reference/node-selection/graph-operators).
+
+## Treat warnings as errors
+
+See [global configs](/reference/global-configs/warnings)
 
 ## Failing fast
 
-<Changelog>
+See [global configs](/reference/global-configs/failing-fast)
 
- - The `--fail-fast` flag is new in dbt v0.17.0
+## Enable or Disable Colorized Logs
 
-</Changelog>
+See [global configs](/reference/global-configs/print-output#print-color)
 
-Supply the `-x` or `--fail-fast` flag to `dbt run` to make dbt exit immediately
-if a single model fails to build. If other models are in-progress when the first
-model fails, then dbt will terminate the connections for these still-running
-models. In the example below, note that 4 models are selected to run, but a
-failure in the first model prevents other models from running.
 
-```text
-$ dbt run --fail-fast --threads 1
-Running with dbt=0.17.0
-Found 4 models, 1 test, 1 snapshot, 2 analyses, 143 macros, 0 operations, 1 seed file, 0 sources
+## The `--empty` flag
 
-14:47:39 | Concurrency: 1 threads (target='dev')
-14:47:39 |
-14:47:39 | 1 of 4 START table model test_schema.model_1........... [RUN]
-14:47:40 | 1 of 4 ERROR creating table model test_schema.model_1.. [ERROR in 0.06s]
-14:47:40 | 2 of 4 START view model test_schema.model_2............ [RUN]
-14:47:40 | CANCEL query model.debug.model_2....................... [CANCEL]
-14:47:40 | 2 of 4 ERROR creating view model test_schema.model_2... [ERROR in 0.05s]
+The `run` command supports the `--empty` flag for building schema-only dry runs. The `--empty` flag limits the refs and sources to zero rows. dbt will still execute the model SQL against the target data warehouse but will avoid expensive reads of input data. This validates dependencies and ensures your models will build properly.
 
-Database Error in model model_1 (models/model_1.sql)
-  division by zero
-  compiled SQL at target/run/debug/models/model_1.sql
+## Status codes
 
-Encountered an error:
-FailFast Error in model model_1 (models/model_1.sql)
-  Failing early due to test failure or runtime error
-```
+When calling the [list_runs api](/dbt-cloud/api-v2#/operations/List%20Runs), you will get a status code for each run returned. The available run status codes are as follows:
+
+- Queued = 1
+- Starting = 2
+- Running = 3
+- Success = 10
+- Error = 20
+- Canceled = 30
+- Skipped = 40

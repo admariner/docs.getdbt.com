@@ -1,5 +1,8 @@
 ---
+title: "Configuring quoting in projects"
+sidebar_label: "quoting"
 datatype: boolean # -ish, it's actually a dictionary of bools
+description: "Read this guide to understand the quoting configuration in dbt."
 default: true
 ---
 <File name='dbt_project.yml'>
@@ -9,28 +12,24 @@ quoting:
   database: true | false
   schema: true | false
   identifier: true | false
-
+  snowflake_ignore_case: true | false  # Fusion-only config. Aligns with Snowflake's session parameter QUOTED_IDENTIFIERS_IGNORE_CASE behavior. 
+                                       # Ignored by dbt Core and other adapters.
 ```
 
 </File>
 
 ## Definition
-Optionally configure whether dbt should quote databases, schemas, and identifiers when:
-* creating relations (tables/views)
-* resolving a `ref` function to a direct relation reference
 
-:::info BigQuery Terminology
+You can optionally enable quoting in a dbt project to control whether dbt wraps database, schema, or identifier names in quotes when generating SQL. dbt uses this configuration when:
+
+* Creating relations (For example, tables or views)
+* Resolving a `ref()` function to a direct relation reference
+
+:::info BigQuery terminology
 
 Note that for BigQuery quoting configuration, `database` and `schema` should be used here, though these configs will apply to `project` and `dataset` names respectively
 
 :::
-
-<Changelog>
-
-* `v0.10.1`: This configuration was introduced with a default value of `true` for each adapter.
-* `v0.11.0`: The default quoting config on Snowflake changed from `true` to `false`
-
-</Changelog>
 
 ## Default
 
@@ -46,8 +45,9 @@ The default values vary by database.
 
 For most adapters, quoting is set to `true` by default.
 
-This is because creating relations with quoted identifiers does not inhibit the ability to select from them, and quoting allows you to use reserved words as object names (though that should probably be avoided)
-<File name='dbt_project.yml'>
+Why? It's equally easy to select from relations with quoted or unquoted identifiers. Quoting allows you to use reserved words and special characters in those identifiers, though we recommend avoiding reserved words and special characters in identifiers whenever possible.
+
+  <File name='dbt_project.yml'>
 
 ```yml
 quoting:
@@ -61,9 +61,9 @@ quoting:
 </TabItem>
 <TabItem value="snowflake">
 
-On Snowflake, quoting is set to `false` by default.
+For Snowflake, quoting is set to `false` by default.
 
-This is because creating relations with quoted identifiers inhibits your ability to select from the them.
+Creating relations with quoted identifiers also makes those identifiers case sensitive. It's much more difficult to select from them. You can re-enable quoting for relations identifiers that are case sensitive, reserved words, or contain special characters, but we recommend you avoid this as much as possible.
 
 <File name='dbt_project.yml'>
 
@@ -72,7 +72,8 @@ quoting:
   database: false
   schema: false
   identifier: false
-
+  snowflake_ignore_case: false  # Fusion-only config. Aligns with Snowflake's session parameter QUOTED_IDENTIFIERS_IGNORE_CASE behavior. 
+                                # Ignored by dbt Core and other adapters.
 ```
 
 </File>
@@ -83,6 +84,7 @@ quoting:
 </Tabs>
 
 ## Examples
+
 Set quoting to `false` for a project:
 <File name='dbt_project.yml'>
 
@@ -90,8 +92,9 @@ Set quoting to `false` for a project:
 quoting:
   database: false
   schema: false
-  identifier: false
-
+  identifier: false      
+  snowflake_ignore_case: false  # Fusion-only config. Aligns with Snowflake's session parameter QUOTED_IDENTIFIERS_IGNORE_CASE behavior. 
+                                # Ignored by dbt Core and other adapters.
 ```
 
 dbt will then create relations without quotes:
@@ -103,21 +106,45 @@ create table analytics.dbt_alice.dim_customers
 </File>
 
 
-## Recommendation
+## Recommendations
 
 ### Snowflake
-Set all quoting configs to `False`. This means that you cannot use reserved words as identifiers, however it's usually a good idea to avoid these reserved words anyway.
 
-#### Explanation:
+If you're using Snowflake, we recommend:
 
-Whereas most databases will _lowercase_ unquoted identifiers, Snowflake will _uppercase_ unquoted identifiers. If a model name is lowercased _and quoted_, then it cannot be referred to without quotes! Check out the example below for more information.
+- Setting all quoting configs to `False` in your [`dbt_project.yml`](/reference/dbt_project.yml) to avoid quoting model and column names unnecessarily and to help prevent case sensitivity issues.
+  - Setting all quoting configs to `False` also means you cannot use reserved words as identifiers, such as model or table names. We recommend you avoid using these reserved words anyway.  
+- If you're using <Constant name="fusion" /> and your Snowflake environment sets the session parameter `QUOTED_IDENTIFIERS_IGNORE_CASE = true` (for example, in an orchestrator or pre-hook), you should also enable quoting and `snowflake_ignore_case` in your `dbt_project.yml` to preserve the exact case of database, schema, and identifier:
+
+  ```yml
+  quoting:
+    database: true
+    schema: true
+    identifier: true
+    snowflake_ignore_case: true  # Fusion-only config. Aligns with Snowflake's session parameter QUOTED_IDENTIFIERS_IGNORE_CASE behavior. 
+                                 # Ignored by dbt Core and other adapters.
+  ```
+
+  Setting `snowflake_ignore_case: true` ensures that dbt compiles column and identifier names match Snowflake’s behavior at runtime, preserving parity between compile-time and runtime logic. Without this, you may encounter "column not found" errors.
+
+:::info Quoting a source
+If a Snowflake source table uses a quoted database, schema, or table identifier, you can configure this in the source.yml file. Refer to [configuring quoting](/reference/resource-properties/quoting) for more information.
+:::
+
+#### Explanation
+
+dbt skips quoting on Snowflake so lowercase model names work seamlessly in downstream queries and BI tools without worrying about case or quotes.
+
+Unlike most databases (which lowercase unquoted identifiers), Snowflake uppercases them. When you quote identifiers, Snowflake will preserve their case and make them case-sensitive. This means when you create a table with quoted, lowercase identifiers, the table should always be referenced with quotes and use the exact same case, which can easily break downstream queries in BI tools or ad-hoc SQL. 
+
+Because dbt conventions use lowercase model and file names, quoting them in Snowflake risks breaking downstream queries in BI tools or ad-hoc SQL. If dbt instead used uppercase names by convention, the safe defaults for other databases would be at risk of breaking downstream queries.
+
 
 <File name='snowflake_casing.sql'>
 
 ```sql
 /*
-    You can run the following queries against your database
-    to build an intuition for how quoting works on Snowflake.
+  Run these queries to understand how Snowflake handles casing and quoting.
 */
 
 -- This is the output of an example `orders.sql` model with quoting enabled
@@ -149,8 +176,7 @@ select * from "analytics"."orders";
 /*
     To avoid this quoting madness, you can disable quoting for schemas
     and identifiers in your dbt_project.yml file. This means that you
-    won't be able to use reserved words as model names, but you probably
-    shouldn't be doing that anyway! Assuming schema and identifier quoting is
+    won't be able to use reserved words as model names, but you should avoid that anyway! Assuming schema and identifier quoting is
     disabled, the following query would indeed work:
 */
 
@@ -162,4 +188,5 @@ select * from analytics.orders;
 
 
 ### Other warehouses
+
 Leave the default values for your warehouse.

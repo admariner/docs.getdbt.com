@@ -1,79 +1,88 @@
 ---
-title: Source properties
+title: "Source properties"
+description: "Learn how to use source properties in dbt."
 ---
 
 ## Related documentation
-- [Using sources](using-sources)
-- [Declaring resource properties](declaring-properties)
+- [Using sources](/docs/build/sources)
+- [Declaring resource properties](/reference/configs-and-properties)
 
 ## Overview
-Source properties can be declared in `.yml` files in your `models/` directory (as defined by the [`source-paths` config](source-paths)).
 
-You can name these files `whatever_you_want.yml`, and nest them arbitrarily deeply in subfolders within the `models/` directory.
+import PropsCallout from '/snippets/_config-prop-callout.md';
+
+Source properties can be declared in any `properties.yml` file in your `models/` directory (as defined by the [`model-paths` config](/reference/project-configs/model-paths)). <PropsCallout title={frontMatter.title}/>  <br /> 
+
+
+You can name these files `whatever_you_want.yml`, and nest them arbitrarily deeply in subfolders within the `models/` directory:
 
 <File name='models/<filename>.yml'>
 
 ```yml
-version: 2
 
 sources:
   - name: <string> # required
-    [description](description): <markdown_string>
-    [database](resource-properties/database): <database_name>
-    [schema](resource-properties/schema): <schema_name>
-    [loader](loader): <string>
-    [loaded_at_field](resource-properties/freshness#loaded_at_field): <column_name>
-    [meta](meta): {<dictionary>}
-    [tags](resource-properties/tags): [<string>]
+    [description](/reference/resource-properties/description): <markdown_string>
+    [database](/reference/resource-properties/database): <database_name>
+    [schema](/reference/resource-properties/schema): <schema_name>
+    [loader](/reference/resource-properties/loader): <string>
 
-    [overrides](resource-properties/overrides): <string>
+    [config](/reference/resource-properties/config): # requires v1.1+
+      [<source_config>](/reference/source-configs): <config_value>
+      [loaded_at_field](/reference/resource-properties/freshness#loaded_at_field): <column_name> # moved under config in v1.10
+      [freshness](/reference/resource-properties/freshness): # moved under config in v1.10
+        warn_after:
+          [count](/reference/resource-properties/freshness#count): <positive_integer>
+          [period](/reference/resource-properties/freshness#period): minute | hour | day
+        error_after:
+          [count](/reference/resource-properties/freshness#count): <positive_integer>
+          [period](/reference/resource-properties/freshness#period): minute | hour | day
+        [filter](/reference/resource-properties/freshness#filter): <where-condition>
+      [meta](/reference/resource-configs/meta): {<dictionary>} # moved under config in v1.10
+      [tags](/reference/resource-configs/tags): [<string>] # moved under config in v1.10
 
-    [freshness](resource-properties/freshness):
-      warn_after:
-        [count](resource-properties/freshness#count): <positive_integer>
-        [period](resource-properties/freshness#period): minute | hour | day
-      error_after:
-        [count](resource-properties/freshness#count): <positive_integer>
-        [period](resource-properties/freshness#period): minute | hour | day
-      [filter](resource-properties/freshness#filter): <where-condition>
+    [overrides](/reference/resource-properties/overrides): <string> # deprecated in v1.10
 
-    [quoting](resource-properties/quoting):
+    [quoting](/reference/resource-properties/quoting):
       database: true | false
       schema: true | false
       identifier: true | false
 
     tables:
       - name: <string> #required
-        [description](description): <markdown_string>
-        [meta](meta): {<dictionary>}
-        [identifier](identifier): <table_name>
-        [loaded_at_field](resource-properties/freshness#loaded_at_field): <column_name>
-        [tests](resource-properties/tests):
+        [description](/reference/resource-properties/description): <markdown_string>
+        [identifier](/reference/resource-properties/identifier): <table_name>
+        [data_tests](/reference/resource-properties/data-tests):
           - <test>
           - ... # declare additional tests
-        [tags](resource-properties/tags): [<string>]
-        [freshness](resource-properties/freshness):
-          warn_after:
-            [count](resource-properties/freshness#count): <positive_integer>
-            [period](resource-properties/freshness#period): minute | hour | day
-          error_after:
-            [count](resource-properties/freshness#count): <positive_integer>
-            [period](resource-properties/freshness#period): minute | hour | day
-          [filter](resource-properties/freshness#filter): <where-condition>
+        [config](/reference/resource-properties/config):
+          [loaded_at_field](/reference/resource-properties/freshness#loaded_at_field): <column_name>
+          [meta](/reference/resource-configs/meta): {<dictionary>}
+          [tags](/reference/resource-configs/tags): [<string>]
+          [freshness](/reference/resource-properties/freshness):
+            warn_after:
+              [count](/reference/resource-properties/freshness#count): <positive_integer>
+              [period](/reference/resource-properties/freshness#period): minute | hour | day
+            error_after:
+              [count](/reference/resource-properties/freshness#count): <positive_integer>
+              [period](/reference/resource-properties/freshness#period): minute | hour | day
+            [filter](/reference/resource-properties/freshness#filter): <where-condition>
 
-        [quoting](resource-properties/quoting):
+        [quoting](/reference/resource-properties/quoting):
           database: true | false
           schema: true | false
           identifier: true | false
+        [external](/reference/resource-properties/external): {<dictionary>}
         columns:
           - name: <column_name> # required
-            [description](description): <markdown_string>
-            [meta](meta): {<dictionary>}
-            [quote](quote): true | false
-            [tests](resource-properties/tests):
+            [description](/reference/resource-properties/description): <markdown_string>
+            [quote](/reference/resource-properties/columns#quote): true | false
+            [data_tests](/reference/resource-properties/data-tests):
               - <test>
               - ... # declare additional tests
-            [tags](resource-properties/tags): [<string>]
+            [config](/reference/resource-properties/config):
+              [meta](/reference/resource-configs/meta): {<dictionary>}
+              [tags](/reference/resource-configs/tags): [<string>]
           - name: ... # declare properties of additional columns
 
       - name: ... # declare properties of additional source tables
@@ -90,24 +99,25 @@ sources:
 <File name='models/<filename>.yml'>
 
 ```yaml
-version: 2
 
 sources:
   - name: jaffle_shop
     database: raw
     schema: public
     loader: emr # informational only (free text)
-    loaded_at_field: _loaded_at # configure for all sources
 
-    # meta fields are rendered in auto-generated documentation
-    meta:
-      contains_pii: true
-      owner: "@alice"
+    config:
+      # changed to config in v1.10
+      loaded_at_field: _loaded_at # configure for all sources
+      # meta fields are rendered in auto-generated documentation
+      meta: # changed to config in v1.10
+        contains_pii: true
+        owner: "@alice"
 
-    # Add tags to this source
-    tags:
-      - ecom
-      - pii
+      # Add tags to this source
+      tags: # changed to config in v1.10
+        - ecom
+        - pii
 
     quoting:
       database: false
@@ -117,21 +127,23 @@ sources:
     tables:
       - name: orders
         identifier: Orders_
-        loaded_at_field: updated_at # override source defaults
+        config:
+          # changed to config in v1.10
+          loaded_at_field: updated_at # override source defaults
         columns:
           - name: id
-            tests:
+            data_tests:
               - unique
 
           - name: price_in_usd
-            tests:
+            data_tests:
               - not_null
 
       - name: customers
         quoting:
           identifier: true # override source defaults
         columns:
-            tests:
+            data_tests:
               - unique
 ```
 
