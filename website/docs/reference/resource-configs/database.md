@@ -1,44 +1,126 @@
 ---
-resource_types: [models, seeds]
+sidebar_label: "database"
+resource_types: [models, seeds, tests]
 datatype: string
+description: "Override the default database when dbt creates resources in your data platform."
 ---
 
-:::caution Heads up!
-This is a work in progress document. While this configuration applies to multiple resource types, the documentation has only been written for seeds.
+<Tabs>
+<TabItem value="model" label="Model">
 
-:::
+Specify a custom database for a model in your `dbt_project.yml` file. 
+
+For example, if you have a model that you want to load into a database other than the target database, you can configure it like this:
+
+<File name='dbt_project.yml'>
+
+```yml
+models:
+  your_project:
+    sales_metrics:
+      +database: reporting
+```
+</File>
+
+
+This would result in the generated relation being located in the `reporting` database, so the full relation name would be `reporting.finance.sales_metrics` instead of the default target database.
+</TabItem>
+
+<TabItem value="seeds" label="Seeds">
+
+Configure a database in your `dbt_project.yml` file. 
+
+For example, to load a seed into a database called `staging` instead of the target database, you can configure it like this:
+
+<File name='dbt_project.yml'>
+
+```yml
+seeds:
+  your_project:
+    product_categories:
+      +database: staging
+```
+
+This would result in the generated relation being located in the `staging` database, so the full relation name would be `staging.finance.product_categories`.
+
+</File>
+</TabItem>
+
+<TabItem value="snapshots" label="Snapshots">
+
+
+<VersionBlock firstVersion="1.9">
+
+Specify a custom database for a snapshot in your `dbt_project.yml`, snapshot.yml file, or config file. 
+
+For example, if you have a snapshot that you want to load into a database other than the target database, you can configure it like this:
+
+<File name='dbt_project.yml'>
+
+```yml
+snapshots:
+  your_project:
+    your_snapshot:
+      +database: snapshots
+```
+</File>
+
+Or in a `snapshot_name.yml` file:
+
+<File name='snapshots/snapshot_name.yml'>
+
+```yaml
+
+snapshots:
+  - name: snapshot_name
+    [config](/reference/resource-properties/config):
+      database: snapshots
+```
+</File>
+
+This results in the generated relation being located in the `snapshots` database so the full relation name would be `snapshots.finance.your_snapshot` instead of the default target database.
+
+</VersionBlock>
+
+</TabItem>
+
+
+
+<TabItem value="test" label="Tests">
+
+Customize the database for storing test results in your `dbt_project.yml` file.
+
+For example, to save test results in a specific database, you can configure it like this:
+
+<File name='dbt_project.yml'>
+
+```yml
+data_tests:
+  +store_failures: true
+  +database: test_results
+```
+
+This would result in the test results being stored in the `test_results` database.
+</File>
+</TabItem>
+</Tabs>
+
 
 ## Definition
 
-Optionally specify a custom database for a [model](docs/docs/building-a-dbt-project/building-models.md) or [seed](docs/docs/building-a-dbt-project/seeds.md). (To specify a database for a [snapshot](snapshots), use the [`target_database` config](target_database)).
+Optionally specify a custom database for a [model](/docs/build/sql-models), [seed](/docs/build/seeds), [snapshot](/docs/build/snapshots), or [data test](/docs/build/data-tests).
 
-When dbt creates a relation (table/view) in a database, it creates it as: `{{ database }}.{{ schema }}.{{ identifier }}`, e.g. `analytics.finance.payments`
+When dbt creates a relation (<Term id="table" />/<Term id="view" />) in a database, it creates it as: `{{ database }}.{{ schema }}.{{ identifier }}`, e.g. `analytics.finance.payments`
 
 The standard behavior of dbt is:
 * If a custom database is _not_ specified, the database of the relation is the target database (`{{ target.database }}`).
 * If a custom database is specified, the database of the relation is the `{{ database }}` value.
 
-To learn more about changing the way that dbt generates a relation's `database`, read [Using Custom Databases](docs/building-a-dbt-project/building-models/using-custom-database.md)
+To learn more about changing the way that dbt generates a relation's `database`, read [Using Custom Databases](/docs/build/custom-databases)
 
-<Changelog>
 
-* `v0.13.0`: Support for the `database` config is added
-* `v0.16.0`: The `generate_database_name` macro was added to control how the `database` config is used by dbt
-
-</Changelog>
-
-## Usage
-### Load seeds into the RAW database
-<File name='dbt_project.yml'>
-
-```yml
-seeds:
-  +database: RAW
-
-```
-
-</File>
 
 ## Warehouse specific information
 * BigQuery: `project` and `database` are interchangeable
-* Redshift: Cross-database queries are not possible in Redshift. As such, dbt will return a Database Error if you use this configuration.
+* Databricks: `catalog` and `database` are interchangable
+
