@@ -1,25 +1,27 @@
-## Description & motivation
-<!---
-Describe your changes, and why you're making them. Is this linked to an open
-issue, a Trello card, or another pull request? Link it here.
+## What are you changing in this pull request and why?
+<!--
+Describe your changes and why you're making them. If related to an open issue or a pull request on dbt Core or another repository, then link to them here! 
+
+To learn more about the writing conventions used in the dbt Labs docs, see the [Content style guide](https://github.com/dbt-labs/docs.getdbt.com/blob/current/contributing/content-style-guide.md).
 -->
 
-## To-do before merge
-<!---
-(Optional -- remove this section if not needed)
-Include any notes about things that need to happen before this PR is merged, e.g.:
-- [ ] Change the base branch
-- [ ] Ensure PR #56 is merged
+## Checklist
+<!-- Ensure your PR meets the following items. Feel free to add additional checklist items to the list if additional checks need to happen before the PR is merged, such as:
+- [ ] Needs technical review
+- [ ] Change base branch
+- [ ] Merge on xyz date
 -->
-
-## Pre-release docs
-Is this change related to an unreleased version of dbt?
-- [ ] Yes
-- [ ] No (if you're not sure, it's probably "No")
-
-If yes, please:
-- Change the base branch of this PR to `next`
-- Add Changelog components
-    - if new: `<Changelog>New in v0.x.0</Changelog>`
-    - if changed: `<Changelog>Changed in v0.x.0: In prior versions, ...</Changelog>`
-- Add links to the "New and changed documentation" section of the latest [Migration Guide](../website/docs/docs/guides/migration-guide)
+- [ ] The changes in this PR meet the [docs style guide/fundamentals](https://github.com/dbt-labs/docs.getdbt.com/blob/current/contributing/content-style-guide.md) required for all content.
+- [ ] Applied the proper versioning rules if the content is for specific dbt version(s): ([version a whole page](https://github.com/dbt-labs/docs.getdbt.com/blob/current/contributing/single-sourcing-content.md#adding-a-new-version) or [version a block of content](https://github.com/dbt-labs/docs.getdbt.com/blob/current/contributing/single-sourcing-content.md#versioning-blocks-of-content)
+- [ ] The content in this PR requires a dbt release note, so I added one to the [release notes page](https://docs.getdbt.com/docs/dbt-versions/release-notes).).
+<!--
+PRE-RELEASE VERSION OF dbt (if so, uncomment):
+- [ ] Add a note to the prerelease version [Migration Guide](https://github.com/dbt-labs/docs.getdbt.com/tree/current/website/docs/docs/dbt-versions/core-upgrade)
+-->
+<!-- 
+ADDING OR REMOVING PAGES (if so, uncomment):
+- [ ] Add/remove page in `website/sidebars.js`
+- [ ] Provide a unique filename for new pages
+- [ ] Add an entry for deleted pages in `website/vercel.json`
+- [ ] Run link testing locally with `npm run build` to update the links that point to deleted pages
+-->

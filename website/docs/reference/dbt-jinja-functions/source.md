@@ -1,20 +1,24 @@
 ---
-title: "source"
+title: "About source function"
+sidebar_label: "source"
 id: "source"
+description: "Read this guide to understand the source Jinja function in dbt."
 ---
+
 ```sql
-select * from {{ source(source_name, table_name) }}
+select * from {{ source("source_name", "table_name") }}
 ```
 
 ## Definition
 
 This function:
-- Returns a [Relation](dbt-classes#relation) for a [source](using-sources)
-- Creates dependencies between a source and the current model, which is useful for documentation and model selection
+- Returns a [Relation](/reference/dbt-classes#relation) for a [source](/docs/build/sources)
+- Creates dependencies between a source and the current model, which is useful for documentation and [node selection](/reference/node-selection/syntax)
 - Compiles to the full object name in the database
 
+
 ## Related guides
-- [Using sources](using-sources)
+- [Using sources](/docs/build/sources)
 
 ## Arguments
 * `source_name`: The `name:` defined under a `sources:` key
@@ -22,12 +26,11 @@ This function:
 
 ## Example
 
-Consider a source defined like so:
+Consider a source defined as follows:
 
 <File name='models/<filename>.yml'>
 
 ```yaml
-version: 2
 
 sources:
   - name: jaffle_shop # this is the source_name

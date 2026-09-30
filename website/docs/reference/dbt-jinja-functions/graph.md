@@ -1,6 +1,8 @@
 ---
-title: "graph"
+title: "About graph context variable"
+sidebar_label: "graph"
 id: "graph"
+description: "The `graph` context variable contains info about nodes in your project."
 ---
 
 The `graph` context variable contains information about the _nodes_ in your dbt
@@ -9,7 +11,7 @@ projects.
 
 :::danger Heads up
 
-dbt actively builds the `graph` variable during the [parsing phase](execute) of
+dbt actively builds the `graph` variable during the [parsing phase](/reference/dbt-jinja-functions/execute) of
 running dbt projects, so some properties of the `graph` context variable will be
 missing or incorrect during parsing. Please read the information below carefully
 to understand how to effectively use this variable.
@@ -18,34 +20,62 @@ to understand how to effectively use this variable.
 
 ### The graph context variable
 
-<Changelog>
-
-  - In dbt v0.17.0, sources were moved out of the `graph.nodes` object and into the `graph.sources` object
-
-</Changelog>
-
 The `graph` context variable is a dictionary which maps node ids onto dictionary
 representations of those nodes. A simplified example might look like:
 
 ```json
 {
   "nodes": {
-    "model.project_name.model_name": {
+    "model.my_project.model_name": {
+      "unique_id": "model.my_project.model_name",
       "config": {"materialized": "table", "sort": "id"},
       "tags": ["abc", "123"],
       "path": "models/path/to/model_name.sql",
       ...
     },
+    ...
   },
   "sources": {
-    "source.project_name.snowplow.event": {
+    "source.my_project.snowplow.event": {
+      "unique_id": "source.my_project.snowplow.event",
       "database": "analytics",
       "schema": "analytics",
-      "unique_id": "source.project_name.snowplow.event",
       "tags": ["abc", "123"],
       "path": "models/path/to/schema.yml",
       ...
     },
+    ...
+  },
+  "exposures": {
+    "exposure.my_project.traffic_dashboard": {
+      "unique_id": "exposure.my_project.traffic_dashboard",
+      "type": "dashboard",
+      "maturity": "high",
+      "path": "models/path/to/schema.yml",
+      ...
+    },
+    ...
+  },
+  "metrics": {
+    "metric.my_project.count_all_events": {
+      "unique_id": "metric.my_project.count_all_events",
+      "type": "count",
+      "path": "models/path/to/schema.yml",
+      ...
+    },
+    ...
+  },
+  "groups": {
+    "group.my_project.finance": {
+      "unique_id": "group.my_project.finance",
+      "name": "finance",
+      "owner": {
+        "email": "finance@jaffleshop.com"
+      }
+      ...
+    },
+    ...
+  }
 }
 ```
 
@@ -56,7 +86,7 @@ but that will change in the future.
 
 The `model` entries in the `graph` dictionary will be incomplete or incorrect
 during parsing. If accessing the models in your project via the `graph`
-variable, be sure to use the [execute](execute) flag to ensure that this code
+variable, be sure to use the [execute](/reference/dbt-jinja-functions/execute) flag to ensure that this code
 only executes at run-time and not at parse-time. Do not use the `graph` variable
 to build your DAG, as the resulting dbt behavior will be undefined and likely
 incorrect. Example usage:
@@ -100,7 +130,7 @@ model.snowplow.snowplow_sessions, materialized: table
 
 ### Accessing sources
 
-To access the sources in your dbt project programatically, use the `sources`
+To access the sources in your dbt project programmatically, use the `sources`
 attribute of the `graph` object.
 
 Example usage:
@@ -122,7 +152,7 @@ Example usage:
 
 select * from (
   {%- for source in sources %}
-    {{ source }} {% if not loop.last %} union all {% endif %}
+    select * from {{ source }} {% if not loop.last %} union all {% endif %}
   {% endfor %}
 )
 
@@ -136,6 +166,101 @@ select * from (
 )
 */
 
+```
+
+</File>
+
+### Accessing exposures
+
+To access the exposures in your dbt project programmatically, use the `exposures`
+attribute of the `graph` object.
+
+Example usage:
+
+<File name='models/my_important_view_model.sql'>
+
+```sql
+{# Include a SQL comment naming all of the exposures that this model feeds into #}
+
+{% set exposures = [] -%}
+{% for exposure in graph.exposures.values() -%}
+  {%- if model['unique_id'] in exposure.depends_on.nodes -%}
+    {%- do exposures.append(exposure) -%}
+  {%- endif -%}
+{%- endfor %}
+
+-- HELLO database administrator! Before dropping this view,
+-- please be aware that doing so will affect:
+
+{% for exposure in exposures %}
+--   * {{ exposure.name }} ({{ exposure.type }})
+{% endfor %}
+
+/*
+  Example compiled SQL
+---------------------------------------------------------------
+-- HELLO database administrator! Before dropping this view,
+-- please be aware that doing so will affect:
+
+--   * our_metrics (dashboard)
+--   * my_sync (application)
+*/
+
+```
+
+</File>
+
+### Accessing metrics
+
+To access the metrics in your dbt project programmatically, use the `metrics` attribute of the `graph` object.
+
+Example usage:
+
+<File name='macros/get_metric.sql'>
+
+```sql
+{% macro get_metric_sql_for(metric_name) %}
+
+  {% set metrics = graph.metrics.values() %}
+  
+  {% set metric = (metrics | selectattr('name', 'equalto', metric_name) | list).pop() %}
+
+  /* Elsewhere, I've defined a macro, get_metric_timeseries_sql, that will return 
+     the SQL needed to perform a time-based rollup of this metric's calculation */
+
+  {% set metric_sql = get_metric_timeseries_sql(
+      relation = metric['model'],
+      type = metric['type'],
+      expression = metric['sql'],
+      ...
+  ) %}
+
+  {{ return(metric_sql) }}
+
+{% endmacro %}
+```
+
+</File>
+
+### Accessing groups
+
+To access the groups in your dbt project programmatically, use the `groups` attribute of the `graph` object.
+
+Example usage:
+
+<File name='macros/get_group.sql'>
+
+```sql
+
+{% macro get_group_owner_for(group_name) %}
+
+  {% set groups = graph.groups.values() %}
+  
+  {% set owner = (groups | selectattr('owner', 'equalto', group_name) | list).pop() %}
+
+  {{ return(owner) }}
+
+{% endmacro %}
 ```
 
 </File>
